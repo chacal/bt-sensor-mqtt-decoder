@@ -8,7 +8,7 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD || undefined
 
 
 const mqttClient = startMqttClient(MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD)
-mqttClient.subscribe('/test/bt-sensor-gw/+/value')
+mqttClient.subscribe('/bt-sensor-gw/+/value')
 mqttClient.on('message', onBtSensorEvent)
 
 
