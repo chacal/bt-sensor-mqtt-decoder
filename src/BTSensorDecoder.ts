@@ -25,7 +25,7 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
     console.error(`Unexpected sensor tag: ${sensorTag}`)
   }
 
-  const temperature = buf.readUInt16LE(16) / 100
+  const temperature = buf.readInt16LE(16) / 100
   const humidity = buf.readUInt16LE(18) / 100
   const pressure = buf.readUInt16LE(20) / 10
   const vcc = buf.readUInt16LE(22)
