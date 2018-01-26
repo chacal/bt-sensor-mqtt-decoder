@@ -23,6 +23,7 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
   const sensorTag = buf.readUInt16LE(14)
   if(sensorTag !== SENSOR_TAG) {
     console.error(`Unexpected sensor tag: ${sensorTag}`)
+    return []
   }
 
   const temperature = buf.readInt16LE(16) / 100
