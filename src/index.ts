@@ -25,7 +25,7 @@ function onBtSensorEvent(topic: string, message: string) {
 }
 
 function startMqttClient<A>(brokerUrl: string, username: string, password: string): Client {
-  const client = mqtt.connect(brokerUrl, { username, password, keepalive: 5 })
+  const client = mqtt.connect(brokerUrl, { username, password })
   client.on('connect', () => console.log('Connected to MQTT server'))
   client.on('offline', () => console.log('Disconnected from MQTT server'))
   client.on('error', (e) => console.log('MQTT client error', e))
