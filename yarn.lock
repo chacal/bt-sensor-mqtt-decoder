@@ -6,12 +6,6 @@
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@chacal/js-utils/-/js-utils-1.2.0.tgz#a5323ae1fc92f392a576e418558ffe1bbe65fd28"
 
-"@types/mqtt@^2.5.0":
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/@types/mqtt/-/mqtt-2.5.0.tgz#bc54c2d53f509282168da4a9af865de95bee5101"
-  dependencies:
-    mqtt "*"
-
 "@types/node@^8.0.57":
   version "8.0.57"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-8.0.57.tgz#e5d8b4dc112763e35cfc51988f4f38da3c486d99"
@@ -19,6 +13,10 @@
 async-limiter@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/async-limiter/-/async-limiter-1.0.0.tgz#78faed8c3d074ab81f22b4e985d79e8738f720f8"
+
+baconjs@^2.0.5:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/baconjs/-/baconjs-2.0.5.tgz#525a507ad8040bc102b1fb0123d4317d7914a8da"
 
 balanced-match@^1.0.0:
   version "1.0.0"
@@ -208,6 +206,10 @@ leven@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/leven/-/leven-1.0.2.tgz#9144b6eebca5f1d0680169f1a6770dcea60b75c3"
 
+lodash@^4.17.5:
+  version "4.17.5"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.5.tgz#99a92d65c0272debe8c96b6057bc8fbfa3bed511"
+
 minimatch@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-3.0.4.tgz#5166e286457f03306064be5497e8dbb0c3d32083"
@@ -227,7 +229,7 @@ mqtt-packet@^5.4.0:
     process-nextick-args "^1.0.7"
     safe-buffer "^5.1.0"
 
-mqtt@*, mqtt@^2.14.0:
+mqtt@^2.14.0:
   version "2.14.0"
   resolved "https://registry.yarnpkg.com/mqtt/-/mqtt-2.14.0.tgz#640b712e3c3c02ebe97882b109499bffc65f97a8"
   dependencies:

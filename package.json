@@ -8,10 +8,11 @@
   "license": "MIT",
   "dependencies": {
     "@chacal/js-utils": "^1.2.0",
+    "@types/node": "^8.0.57",
+    "baconjs": "^2.0.5",
+    "lodash": "^4.17.5",
     "mqtt": "^2.14.0",
-    "typescript": "^2.6.2",
-    "@types/node": "^8.0.57"
+    "typescript": "^2.6.2"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }
