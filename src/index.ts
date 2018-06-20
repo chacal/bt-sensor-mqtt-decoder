@@ -7,6 +7,7 @@ import btSensorDecode from './BTSensorDecoder'
 const MQTT_BROKER = process.env.MQTT_BROKER ? process.env.MQTT_BROKER : 'mqtt://mqtt-home.chacal.fi'
 const MQTT_USERNAME = process.env.MQTT_USERNAME || undefined
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || undefined
+const MAX_DISCONNECT_COUNT = 20
 
 const BUFFER_TIME_MS = 2000   // Coalesce events from each sensor this many ms and pass on only the one with the highest RSSI
 
@@ -40,9 +41,18 @@ function parseEventsFromBytes(message) {
 }
 
 function startMqttClient<A>(brokerUrl: string, username: string, password: string): Client {
+  let disconnectCount = 0
+
   const client = mqtt.connect(brokerUrl, {username, password})
   client.on('connect', () => console.log('Connected to MQTT server'))
-  client.on('offline', () => console.log('Disconnected from MQTT server'))
+  client.on('offline', () => {
+    disconnectCount++
+    console.log(`Disconnected from MQTT server. Disconnect count: ${disconnectCount}/${MAX_DISCONNECT_COUNT}`)
+    if(disconnectCount === MAX_DISCONNECT_COUNT) {
+      console.log("Exiting due to too many MQTT disconnects..")
+      process.exit(1)
+    }
+  })
   client.on('error', (e) => console.log('MQTT client error', e))
 
   return client
