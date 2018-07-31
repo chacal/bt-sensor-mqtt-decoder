@@ -35,7 +35,7 @@ function parseEventsFromBytes(message) {
     const sensorEvents = btSensorDecode(messageJson.data)
     return Bacon.fromArray(sensorEvents.map(e => Object.assign(e, {rssi: messageJson.rssi})))
   } catch(e) {
-    console.error(`Got invalid MQTT message: ${message}`)
+    console.error(`Got invalid MQTT message: ${message}`, e)
     return Bacon.fromArray([])
   }
 }
