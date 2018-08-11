@@ -5,7 +5,7 @@ import {Mqtt, SensorEvents} from '@chacal/js-utils'
 
 declare module 'baconjs' {
   interface EventStream<E, A> {
-    slidingTimeWindow<E, A>(windowLengthMs: number): Bacon.EventStream<E, Array<{value: A, timestamp: number}>>;
+    slidingTimeWindow<E, A>(windowLengthMs: number): Bacon.EventStream<E, Array<{ value: A, timestamp: number }>>;
   }
 }
 
