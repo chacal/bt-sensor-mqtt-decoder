@@ -19,8 +19,21 @@ const BUFFER_TIME_MS = 2000   // Coalesce events from each sensor this many ms a
 const mqttClient = Mqtt.startMqttClient(MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD)
 mqttClient.subscribe('/bt-sensor-gw/+/value')
 
-Mqtt.messageStreamFrom(mqttClient)
-  .flatMap(parseEventsFromBytes)
+
+const allSensorEvents = Mqtt.messageStreamFrom(mqttClient).flatMap(parseEventsFromBytes)
+const pirEvents = allSensorEvents.filter(SensorEvents.isPirEvent)
+const otherEvents = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e))
+
+
+// Publish PIR events immediately
+pirEvents
+  .groupBy(event => event.instance)
+  .flatMap(streamFromOneInstance => streamFromOneInstance)
+  .onValue(publishEvent)
+
+
+// Buffer others for BUFFER_TIME_MS and publish the one with the highest RSSI
+otherEvents
   .groupBy(event => event.tag + event.instance)
   .flatMap(groupedStream => {
     // Buffer events for each sensor for BUFFER_TIME_MS and select the one with the highest RSSI
@@ -31,7 +44,12 @@ Mqtt.messageStreamFrom(mqttClient)
       .map(latestEventsWithTs => latestEventsWithTs.map(e => e.value))
       .map(latestEvents => _.last(_.sortBy(latestEvents, 'rssi')))
   })
-  .onValue(e => mqttClient.publish(`/sensor/${e.instance}/${e.tag}/state`, JSON.stringify(e), {retain: true, qos: 1}))
+  .onValue(publishEvent)
+
+
+function publishEvent(e: SensorEvents.ISensorEvent): void {
+  mqttClient.publish(`/sensor/${e.instance}/${e.tag}/state`, JSON.stringify(e), {retain: true, qos: 1})
+}
 
 
 function parseEventsFromBytes(message): Bacon.EventStream<any, SensorEvents.ISensorEvent> {
