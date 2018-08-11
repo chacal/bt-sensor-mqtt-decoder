@@ -2,9 +2,6 @@
   "name": "bt-sensor-mqtt-decoder",
   "version": "1.0.0",
   "main": "built/index.js",
-  "scripts": {
-    "postinstall": "./node_modules/.bin/tsc"
-  },
   "license": "MIT",
   "dependencies": {
     "@chacal/js-utils": "^1.5.0",
