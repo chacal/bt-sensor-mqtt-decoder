@@ -15,6 +15,7 @@ const MQTT_USERNAME = process.env.MQTT_USERNAME || undefined
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || undefined
 
 const BUFFER_TIME_MS = 2000   // Coalesce events from each sensor this many ms and pass on only the one with the highest RSSI
+const MESSAGE_COUNTER_WINDOW_SIZE = 10   // Remember this many latest message counters and publish new event only if its counter is not in the remembered list
 
 const mqttClient = Mqtt.startMqttClient(MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD)
 mqttClient.subscribe('/bt-sensor-gw/+/value')
@@ -22,8 +23,22 @@ mqttClient.subscribe('/bt-sensor-gw/+/value')
 
 const allSensorEvents = Mqtt.messageStreamFrom(mqttClient).flatMap(parseEventsFromBytes)
 const pirEvents = allSensorEvents.filter(SensorEvents.isPirEvent)
-const otherEvents = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e))
+const currentEvents = allSensorEvents.filter(SensorEvents.isCurrent)
+const otherEvents = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e) && !SensorEvents.isCurrent(e))
 
+
+currentEvents
+  .groupBy(event => event.instance)
+  .flatMap(streamFromOneInstance => streamFromOneInstance)
+  .slidingWindow(MESSAGE_COUNTER_WINDOW_SIZE, 1)
+  .onValue(events => {
+    const newestMessageCounter = _.last(events).messageCounter
+    const messageCounterCounts = _.countBy(events, 'messageCounter')
+    // Publish event only if its message counter value occurs once in the latest counter values list (= the message has not been seen yet)
+    if(messageCounterCounts[`${newestMessageCounter}`] === 1) {
+      publishEvent(_.last(events))
+    }
+  })
 
 // Publish PIR events immediately
 pirEvents
