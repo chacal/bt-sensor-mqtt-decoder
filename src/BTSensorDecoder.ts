@@ -5,6 +5,7 @@ import IPirEvent = SensorEvents.IPirEvent
 const MANUFACTURER_ID = 0xDADA
 const ENVIRONMENT_SENSOR_TAG = 'm'.charCodeAt(0)
 const PIR_SENSOR_TAG = 'k'.charCodeAt(0)
+const CURRENT_SENSOR_TAG = 'n'.charCodeAt(0)
 
 export default function decodeBtSensorData(hexData: string): Array<ISensorEvent> {
   const data = Buffer.from(hexData, 'hex')
@@ -29,6 +30,8 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
       return parseEnvironmentEvents(buf)
     case PIR_SENSOR_TAG:
       return parsePirEvent(buf)
+    case CURRENT_SENSOR_TAG:
+      return parseCurrentEvent(buf)
     default:
       console.error(`Unexpected sensor tag: ${sensorTag}`)
       return []
@@ -61,6 +64,18 @@ function parsePirEvent(buf: Buffer): Array<IPirEvent> {
   const ts = new Date().toISOString()
   const pirEvent = {tag: 'k', instance, motionDetected, vcc, ts}
   return [pirEvent]
+}
+
+function parseCurrentEvent(buf: Buffer): Array<SensorEvents.ICurrentEvent> {
+  assertLength(buf, 'Current sensor', 36)
+
+  const current = buf.readFloatLE(22)
+  const vcc = buf.readUInt16LE(26)
+  const messageCounter = buf.readUInt16LE(28)
+  const instance = buf.toString('utf-8', 32, 36)
+  const ts = new Date().toISOString()
+  const currentEvent = {tag: 'c', instance, current, vcc, ts, messageCounter}
+  return [currentEvent]
 }
 
 function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
