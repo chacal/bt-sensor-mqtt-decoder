@@ -1,6 +1,7 @@
 import {SensorEvents, SensorEvents as Events} from "@chacal/js-utils"
 import ISensorEvent = SensorEvents.ISensorEvent
 import IPirEvent = SensorEvents.IPirEvent
+import {buf as crc32} from "crc-32"
 
 const MANUFACTURER_ID = 0xDADA
 const ENVIRONMENT_SENSOR_TAG = 'm'.charCodeAt(0)
@@ -68,6 +69,7 @@ function parsePirEvent(buf: Buffer): Array<IPirEvent> {
 
 function parseCurrentEvent(buf: Buffer): Array<SensorEvents.ICurrentEvent> {
   assertLength(buf, 'Current sensor', 36)
+  assertCrc(buf)
 
   const current = buf.readFloatLE(22)
   const vcc = buf.readUInt16LE(26)
@@ -83,5 +85,15 @@ function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
     const err = `Invalid ${sensorType} packet length: ${buf.length} Expected ${expectedBytes} bytes.`
     console.error(err)
     throw new Error(err)
+  }
+}
+
+function assertCrc(buf: Buffer) {
+  const crcFromMessage = buf.readUInt32LE(16)
+  buf.writeUInt32LE(0, 16)  // Zero CRC in the message as it is part of the CRC calculation
+  const calculatedCrc = crc32(buf.slice(6)) >>> 0   // Ignore first 6 bytes (MAC), convert to uint32_t
+  if(crcFromMessage !== calculatedCrc) {
+    console.error(`Invalid CRC`)
+    throw new Error(`Invalid CRC`)
   }
 }
