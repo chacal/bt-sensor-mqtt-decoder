@@ -57,11 +57,12 @@ function parseEnvironmentEvents(buf: Buffer): Array<ISensorEvent> {
 }
 
 function parsePirEvent(buf: Buffer): Array<IPirEvent> {
-  assertLength(buf, 'PIR sensor', 25)
+  assertLength(buf, 'PIR sensor', 29)
+  assertCrc(buf)
 
-  const motionDetected = buf.readUInt8(16) !== 0
-  const vcc = buf.readUInt16LE(17)
-  const instance = buf.toString('utf-8', 21, 25)
+  const motionDetected = buf.readUInt8(20) !== 0
+  const vcc = buf.readUInt16LE(21)
+  const instance = buf.toString('utf-8', 25, 29)
   const ts = new Date().toISOString()
   const pirEvent = {tag: 'k', instance, motionDetected, vcc, ts}
   return [pirEvent]
