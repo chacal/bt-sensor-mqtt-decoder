@@ -90,7 +90,7 @@ function parseCurrentEvent(buf: Buffer): Array<SensorEvents.ICurrentEvent> {
   assertLength(buf, 'Current sensor', 36)
   assertCrc(buf)
 
-  const current = -buf.readFloatLE(22)
+  const current = buf.readFloatLE(22)
   const vcc = buf.readUInt16LE(26)
   const messageCounter = buf.readUInt16LE(28)
   const instance = buf.toString('utf-8', 32, 36)
