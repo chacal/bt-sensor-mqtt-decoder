@@ -4,7 +4,7 @@
   "main": "built/index.js",
   "license": "MIT",
   "dependencies": {
-    "@chacal/js-utils": "^1.5.0",
+    "@chacal/js-utils": "^1.7.0",
     "@types/baconjs": "^0.7.33",
     "@types/node": "^8.10.26",
     "baconjs": "^2.0.9",
