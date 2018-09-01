@@ -40,11 +40,19 @@ currentEvents
     }
   })
 
-// Publish PIR events immediately
+// Buffer PIR events for BUFFER_TIME_MS, but immediately publish a new event if its messageId has not been seen yet
+// This allows immediate publishing of events with a new messageId, but still also publishes events with non-changed messageId
+// if they occur at least BUFFER_TIME_MS apart.
 pirEvents
   .groupBy(event => event.instance)
-  .flatMap(streamFromOneInstance => streamFromOneInstance)
-  .onValue(publishEvent)
+  .flatMap(streamFromOneInstance => streamFromOneInstance.slidingTimeWindow<{}, SensorEvents.IPirEvent>(BUFFER_TIME_MS))
+  .onValue(latestEventsWithTs => {
+    const latestEvent = _.last(latestEventsWithTs).value
+    const eventsWithSameMessageId = latestEventsWithTs.filter(({value, timestamp}) => value.messageId === latestEvent.messageId)
+    if(eventsWithSameMessageId.length === 1) {
+      publishEvent(latestEvent)
+    }
+  })
 
 
 // Buffer others for BUFFER_TIME_MS and publish the one with the highest RSSI
