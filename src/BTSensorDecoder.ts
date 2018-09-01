@@ -26,7 +26,7 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
   }
 
   const sensorTag = buf.readUInt16LE(14)
-  switch (sensorTag) {
+  switch(sensorTag) {
     case ENVIRONMENT_SENSOR_TAG:
       return parseEnvironmentEvents(buf)
     case PIR_SENSOR_TAG:
@@ -40,38 +40,21 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
 }
 
 function parseEnvironmentEvents(buf: Buffer): Array<ISensorEvent> {
-  if(buf.length === 30) {
-    assertLength(buf, 'environment sensor', 30)
+  assertLength(buf, 'environment sensor', 34)
+  assertCrc(buf)
 
-    const temperature = buf.readInt16LE(16) / 100
-    const humidity = buf.readUInt16LE(18) / 100
-    const pressure = buf.readUInt16LE(20) / 10
-    const vcc = buf.readUInt16LE(22)
-    const instance = buf.toString('utf-8', 26, 30)
-    const ts = new Date().toISOString()
+  const temperature = buf.readInt16LE(20) / 100
+  const humidity = buf.readUInt16LE(22) / 100
+  const pressure = buf.readUInt16LE(24) / 10
+  const vcc = buf.readUInt16LE(26)
+  const instance = buf.toString('utf-8', 30, 34)
+  const ts = new Date().toISOString()
 
-    const tempEvent: Events.ITemperatureEvent = {tag: 't', instance, temperature, vcc, ts}
-    const humEvent: Events.IHumidityEvent = {tag: 'h', instance, humidity, vcc, ts}
-    const pressEvent: Events.IPressureEvent = {tag: 'p', instance, pressure, vcc, ts}
+  const tempEvent: Events.ITemperatureEvent = {tag: 't', instance, temperature, vcc, ts}
+  const humEvent: Events.IHumidityEvent = {tag: 'h', instance, humidity, vcc, ts}
+  const pressEvent: Events.IPressureEvent = {tag: 'p', instance, pressure, vcc, ts}
 
-    return [tempEvent, humEvent, pressEvent]
-  } else if(buf.length === 34) {
-    assertLength(buf, 'environment sensor', 34)
-    assertCrc(buf)
-
-    const temperature = buf.readInt16LE(20) / 100
-    const humidity = buf.readUInt16LE(22) / 100
-    const pressure = buf.readUInt16LE(24) / 10
-    const vcc = buf.readUInt16LE(26)
-    const instance = buf.toString('utf-8', 30, 34)
-    const ts = new Date().toISOString()
-
-    const tempEvent: Events.ITemperatureEvent = {tag: 't', instance, temperature, vcc, ts}
-    const humEvent: Events.IHumidityEvent = {tag: 'h', instance, humidity, vcc, ts}
-    const pressEvent: Events.IPressureEvent = {tag: 'p', instance, pressure, vcc, ts}
-
-    return [tempEvent, humEvent, pressEvent]
-  }
+  return [tempEvent, humEvent, pressEvent]
 }
 
 function parsePirEvent(buf: Buffer): Array<IPirEvent> {
