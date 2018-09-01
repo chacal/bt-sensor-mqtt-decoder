@@ -6,11 +6,11 @@
   "dependencies": {
     "@chacal/js-utils": "^1.7.0",
     "@types/baconjs": "^0.7.33",
-    "@types/node": "^8.10.26",
+    "@types/node": "^8.10.29",
     "baconjs": "^2.0.9",
     "crc-32": "^1.2.0",
     "lodash": "^4.17.10",
-    "mqtt": "^2.18.3",
+    "mqtt": "^2.18.8",
     "typescript": "^2.9.2"
   },
   "devDependencies": {}
