@@ -7,6 +7,7 @@ const MANUFACTURER_ID = 0xDADA
 const ENVIRONMENT_SENSOR_TAG = 'm'.charCodeAt(0)
 const PIR_SENSOR_TAG = 'k'.charCodeAt(0)
 const CURRENT_SENSOR_TAG = 'n'.charCodeAt(0)
+const TEMPERATURE_SENSOR_TAG = 't'.charCodeAt(0)
 
 export default function decodeBtSensorData(hexData: string): Array<ISensorEvent> {
   const data = Buffer.from(hexData, 'hex')
@@ -33,6 +34,8 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
       return parsePirEvent(buf)
     case CURRENT_SENSOR_TAG:
       return parseCurrentEvent(buf)
+    case TEMPERATURE_SENSOR_TAG:
+      return parseTemperatureEvent(buf)
     default:
       console.error(`Unexpected sensor tag: ${sensorTag}`)
       return []
@@ -81,6 +84,18 @@ function parseCurrentEvent(buf: Buffer): Array<SensorEvents.ICurrentEvent> {
   const ts = new Date().toISOString()
   const currentEvent = {tag: 'c', instance, current, vcc, ts, messageCounter}
   return [currentEvent]
+}
+
+function parseTemperatureEvent(buf: Buffer): Array<SensorEvents.ITemperatureEvent> {
+  assertLength(buf, 'Temperature sensor', 30)
+  assertCrc(buf)
+
+  const temperature = buf.readInt16LE(20) / 100
+  const vcc = buf.readUInt16LE(22)
+  const instance = buf.toString('utf-8', 26, 30)
+  const ts = new Date().toISOString()
+  const temperatureEvent = {tag: 't', instance, temperature, vcc, ts}
+  return [temperatureEvent]
 }
 
 function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
