@@ -8,6 +8,7 @@ const ENVIRONMENT_SENSOR_TAG = 'm'.charCodeAt(0)
 const PIR_SENSOR_TAG = 'k'.charCodeAt(0)
 const CURRENT_SENSOR_TAG = 'n'.charCodeAt(0)
 const TEMPERATURE_SENSOR_TAG = 't'.charCodeAt(0)
+const TANK_LEVEL_SENSOR_TAG = 'w'.charCodeAt(0)
 
 export default function decodeBtSensorData(hexData: string): Array<ISensorEvent> {
   const data = Buffer.from(hexData, 'hex')
@@ -36,6 +37,8 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
       return parseCurrentEvent(buf)
     case TEMPERATURE_SENSOR_TAG:
       return parseTemperatureEvent(buf)
+    case TANK_LEVEL_SENSOR_TAG:
+      return parseTankLevelEvent(buf)
     default:
       console.error(`Unexpected sensor tag: ${sensorTag}`)
       return []
@@ -96,6 +99,18 @@ function parseTemperatureEvent(buf: Buffer): Array<SensorEvents.ITemperatureEven
   const ts = new Date().toISOString()
   const temperatureEvent = {tag: 't', instance, temperature, vcc, ts}
   return [temperatureEvent]
+}
+
+function parseTankLevelEvent(buf: Buffer): Array<SensorEvents.ITankLevel> {
+  assertLength(buf, 'Tank level sensor', 29)
+  assertCrc(buf)
+
+  const tankLevel = buf.readUInt8(20)
+  const vcc = buf.readUInt16LE(21)
+  const instance = buf.toString('utf-8', 25, 29)
+  const ts = new Date().toISOString()
+  const tankLevelEvent = {tag: 'w', instance, tankLevel, vcc, ts}
+  return [tankLevelEvent]
 }
 
 function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
