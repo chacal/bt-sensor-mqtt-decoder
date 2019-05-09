@@ -1,7 +1,11 @@
+trigger:
+  - prod
+
 jobs:
   - template: .azure_pipelines/build_container.yml
     parameters:
       image_base: amd64
+
   - template: .azure_pipelines/build_container.yml
     parameters:
       image_base: arm32v7
@@ -11,7 +15,6 @@ jobs:
     dependsOn:
       - build_amd64
       - build_arm32v7
-    condition: and(succeeded(), in(variables['Build.SourceBranchName'], 'master', 'prod'))
     pool:
       vmImage: 'ubuntu-latest'
     steps:
