@@ -1,4 +1,5 @@
-FROM node:alpine
+ARG BASE="amd64"
+FROM $BASE/node:11-slim
 ENV NODE_ENV=production
 WORKDIR /opt/app
 

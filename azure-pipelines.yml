@@ -1,14 +1,28 @@
-trigger:
-- master
+jobs:
+  - template: .azure_pipelines/build_container.yml
+    parameters:
+      image_base: amd64
+  - template: .azure_pipelines/build_container.yml
+    parameters:
+      image_base: arm32v7
 
-pool:
-  vmImage: 'ubuntu-latest'
+  - job: create_manifest
+    displayName: Create and push container manifest
+    dependsOn:
+      - build_amd64
+      - build_arm32v7
+    condition: and(succeeded(), in(variables['Build.SourceBranchName'], 'master', 'prod'))
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - script: echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin
+        displayName: 'docker login'
+        env:
+          DOCKERHUB_USERNAME: $(DOCKERHUB_USERNAME)
+          DOCKERHUB_PASSWORD: $(DOCKERHUB_PASSWORD)
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+      - script: DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create jihartik/bt-sensor-mqtt-decoder:latest jihartik/bt-sensor-mqtt-decoder:arm32v7 jihartik/bt-sensor-mqtt-decoder:amd64
+        displayName: 'create manifest'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+      - script: DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push jihartik/bt-sensor-mqtt-decoder:latest
+        displayName: 'push manifest'
