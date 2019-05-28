@@ -89,8 +89,11 @@ function parseEventsFromBytes(message): Bacon.EventStream<any, SensorEvents.ISen
 
 function registerProcessSignalHandler() {
   process.on('SIGTERM', () => {
-    console.info('SIGTERM signal received, exiting..')
-    process.exit(0)
+    console.log('SIGTERM signal received, closing MQTT connection..')
+    mqttClient.end(false, () => {
+      console.log('MQTT connection closed. Exiting..')
+      process.exit(0)
+    })
   })
 }
 
