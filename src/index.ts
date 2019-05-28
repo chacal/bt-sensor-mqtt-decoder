@@ -19,6 +19,7 @@ const MESSAGE_COUNTER_WINDOW_SIZE = 10   // Remember this many latest message co
 
 const mqttClient = Mqtt.startMqttClient(MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD)
 mqttClient.subscribe('/bt-sensor-gw/+/value')
+registerProcessSignalHandler()
 
 
 const allSensorEvents = Mqtt.messageStreamFrom(mqttClient).flatMap(parseEventsFromBytes)
@@ -86,6 +87,12 @@ function parseEventsFromBytes(message): Bacon.EventStream<any, SensorEvents.ISen
   }
 }
 
+function registerProcessSignalHandler() {
+  process.on('SIGTERM', () => {
+    console.info('SIGTERM signal received, exiting..')
+    process.exit(0)
+  })
+}
 
 Bacon.EventStream.prototype.slidingTimeWindow = function(windowDuration) {
   let addToWindow, now, withTimeStamp
