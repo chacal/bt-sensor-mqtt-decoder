@@ -1,6 +1,8 @@
 trigger:
   - prod
 
+pr: none
+
 jobs:
   - template: .azure_pipelines/build_container.yml
     parameters:
