@@ -1,5 +1,5 @@
 ARG BASE="amd64"
-FROM $BASE/node:11-slim
+FROM $BASE/node:12-slim
 ENV NODE_ENV=production
 WORKDIR /opt/app
 

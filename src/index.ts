@@ -1,13 +1,8 @@
-import Bacon = require('baconjs')
 import _ = require('lodash')
 import btSensorDecode from './BTSensorDecoder'
-import {Mqtt, SensorEvents} from '@chacal/js-utils'
-
-declare module 'baconjs' {
-  interface EventStream<E, A> {
-    slidingTimeWindow<E, A>(windowLengthMs: number): Bacon.EventStream<E, Array<{ value: A, timestamp: number }>>;
-  }
-}
+import { SensorEvents } from '@chacal/js-utils/built/ISensorEvent'
+import { Mqtt } from '@chacal/js-utils/built/Mqtt'
+import { EventStream, fromArray, Property } from 'baconjs'
 
 
 const MQTT_BROKER = process.env.MQTT_BROKER ? process.env.MQTT_BROKER : 'mqtt://mqtt-home.chacal.fi'
@@ -23,9 +18,9 @@ registerProcessSignalHandler()
 
 
 const allSensorEvents = Mqtt.messageStreamFrom(mqttClient).flatMap(parseEventsFromBytes)
-const pirEvents = allSensorEvents.filter(SensorEvents.isPirEvent)
-const currentEvents = allSensorEvents.filter(SensorEvents.isCurrent)
-const otherEvents = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e) && !SensorEvents.isCurrent(e))
+const pirEvents = allSensorEvents.filter(SensorEvents.isPirEvent) as EventStream<SensorEvents.IPirEvent>
+const currentEvents = allSensorEvents.filter(SensorEvents.isCurrent) as EventStream<SensorEvents.ICurrentEvent>
+const otherEvents: EventStream<SensorEvents.ISensorEvent> = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e) && !SensorEvents.isCurrent(e))
 
 
 currentEvents
@@ -36,7 +31,7 @@ currentEvents
     const newestMessageCounter = _.last(events).messageCounter
     const messageCounterCounts = _.countBy(events, 'messageCounter')
     // Publish event only if its message counter value occurs once in the latest counter values list (= the message has not been seen yet)
-    if(messageCounterCounts[`${newestMessageCounter}`] === 1) {
+    if (messageCounterCounts[`${newestMessageCounter}`] === 1) {
       publishEvent(_.last(events))
     }
   })
@@ -46,11 +41,11 @@ currentEvents
 // if they occur at least BUFFER_TIME_MS apart.
 pirEvents
   .groupBy(event => event.instance)
-  .flatMap(streamFromOneInstance => streamFromOneInstance.slidingTimeWindow<{}, SensorEvents.IPirEvent>(BUFFER_TIME_MS))
+  .flatMap(streamFromOneInstance => slidingTimeWindow(streamFromOneInstance, BUFFER_TIME_MS))
   .onValue(latestEventsWithTs => {
     const latestEvent = _.last(latestEventsWithTs).value
-    const eventsWithSameMessageId = latestEventsWithTs.filter(({value, timestamp}) => value.messageId === latestEvent.messageId)
-    if(eventsWithSameMessageId.length === 1) {
+    const eventsWithSameMessageId = latestEventsWithTs.filter(({ value, timestamp }) => value.messageId === latestEvent.messageId)
+    if (eventsWithSameMessageId.length === 1) {
       publishEvent(latestEvent)
     }
   })
@@ -63,7 +58,7 @@ otherEvents
     // Buffer events for each sensor for BUFFER_TIME_MS and select the one with the highest RSSI
     // This is done in order to avoid multiple events being generated even if the same radio packet is received by multiple
     // ESP-BT-MQTT gateways
-    return groupedStream.slidingTimeWindow(BUFFER_TIME_MS)
+    return slidingTimeWindow(groupedStream, BUFFER_TIME_MS)
       .debounce(BUFFER_TIME_MS)
       .map(latestEventsWithTs => latestEventsWithTs.map(e => e.value))
       .map(latestEvents => _.last(_.sortBy(latestEvents, 'rssi')))
@@ -72,18 +67,18 @@ otherEvents
 
 
 function publishEvent(e: SensorEvents.ISensorEvent): void {
-  mqttClient.publish(`/sensor/${e.instance}/${e.tag}/state`, JSON.stringify(e), {retain: true, qos: 1})
+  mqttClient.publish(`/sensor/${e.instance}/${e.tag}/state`, JSON.stringify(e), { retain: true, qos: 1 })
 }
 
 
-function parseEventsFromBytes(message): Bacon.EventStream<any, SensorEvents.ISensorEvent> {
+function parseEventsFromBytes(message): EventStream<SensorEvents.ISensorEvent> {
   try {
     const messageJson = JSON.parse(message)
     const sensorEvents = btSensorDecode(messageJson.data)
-    return Bacon.fromArray(sensorEvents.map(e => Object.assign(e, {rssi: messageJson.rssi})))
-  } catch(e) {
+    return fromArray(sensorEvents.map(e => Object.assign(e, { rssi: messageJson.rssi })))
+  } catch (e) {
     console.error(`Got invalid MQTT message: ${message}`, e)
-    return Bacon.fromArray([])
+    return fromArray([])
   }
 }
 
@@ -97,25 +92,33 @@ function registerProcessSignalHandler() {
   })
 }
 
-Bacon.EventStream.prototype.slidingTimeWindow = function(windowDuration) {
-  let addToWindow, now, withTimeStamp
-  now = function() {
+interface Timestamped<T> {
+  value: T
+  timestamp: number
+}
+
+function slidingTimeWindow<T>(s: EventStream<T>, windowLengthMs: number): Property<Array<Timestamped<T>>> {
+
+  function now() {
     return Date.now()
   }
-  withTimeStamp = function(value) {
+
+  function withTimeStamp<T>(value: T): Timestamped<T> {
     return {
       value: value,
       timestamp: now()
     }
   }
-  addToWindow = function(window, value) {
+
+  function addToWindow<T>(window: Array<Timestamped<T>>, value: Timestamped<T>) {
     window.push(value)
-    var ref = window[0]
-    while(ref != null && ref.timestamp < now() - windowDuration) {
+    let ref = window[0]
+    while (ref != null && ref.timestamp < now() - windowLengthMs) {
       window = window.splice(1)
       ref = window[0]
     }
     return window
   }
-  return this.map(withTimeStamp).scan([], addToWindow)
+
+  return s.map(withTimeStamp).scan([], addToWindow)
 }
