@@ -20,21 +20,27 @@ registerProcessSignalHandler()
 const allSensorEvents = Mqtt.messageStreamFrom(mqttClient).flatMap(parseEventsFromBytes)
 const pirEvents = allSensorEvents.filter(SensorEvents.isPirEvent) as EventStream<SensorEvents.IPirEvent>
 const currentEvents = allSensorEvents.filter(SensorEvents.isCurrent) as EventStream<SensorEvents.ICurrentEvent>
-const otherEvents: EventStream<SensorEvents.ISensorEvent> = allSensorEvents.filter(e => !SensorEvents.isPirEvent(e) && !SensorEvents.isCurrent(e))
+const autopilotCommandEvents = allSensorEvents.filter(SensorEvents.isAutopilotCommand) as EventStream<SensorEvents.IAutopilotCommand>
+const otherEvents: EventStream<SensorEvents.ISensorEvent> = allSensorEvents
+  .filter(e => !SensorEvents.isPirEvent(e) && !SensorEvents.isCurrent(e) && !SensorEvents.isAutopilotCommand(e))
 
+publishEventsWithMessageCounter(currentEvents)
+publishEventsWithMessageCounter(autopilotCommandEvents)
 
-currentEvents
-  .groupBy(event => event.instance)
-  .flatMap(streamFromOneInstance => streamFromOneInstance)
-  .slidingWindow(MESSAGE_COUNTER_WINDOW_SIZE, 1)
-  .onValue(events => {
-    const newestMessageCounter = _.last(events).messageCounter
-    const messageCounterCounts = _.countBy(events, 'messageCounter')
-    // Publish event only if its message counter value occurs once in the latest counter values list (= the message has not been seen yet)
-    if (messageCounterCounts[`${newestMessageCounter}`] === 1) {
-      publishEvent(_.last(events))
-    }
-  })
+function publishEventsWithMessageCounter(events: EventStream<SensorEvents.ICurrentEvent | SensorEvents.IAutopilotCommand>) {
+  events
+    .groupBy(event => event.instance)
+    .flatMap(streamFromOneInstance => streamFromOneInstance)
+    .slidingWindow(MESSAGE_COUNTER_WINDOW_SIZE, 1)
+    .onValue(events => {
+      const newestMessageCounter = _.last(events).messageCounter
+      const messageCounterCounts = _.countBy(events, 'messageCounter')
+      // Publish event only if its message counter value occurs once in the latest counter values list (= the message has not been seen yet)
+      if (messageCounterCounts[`${newestMessageCounter}`] === 1) {
+        publishEvent(_.last(events))
+      }
+    })
+}
 
 // Buffer PIR events for BUFFER_TIME_MS, but immediately publish a new event if its messageId has not been seen yet
 // This allows immediate publishing of events with a new messageId, but still also publishes events with non-changed messageId

@@ -9,6 +9,7 @@ const PIR_SENSOR_TAG = 'k'.charCodeAt(0)
 const CURRENT_SENSOR_TAG = 'n'.charCodeAt(0)
 const TEMPERATURE_SENSOR_TAG = 't'.charCodeAt(0)
 const TANK_LEVEL_SENSOR_TAG = 'w'.charCodeAt(0)
+const AUTOPILOT_REMOTE_TAG = 'a'.charCodeAt(0)
 
 export default function decodeBtSensorData(hexData: string): Array<ISensorEvent> {
   const data = Buffer.from(hexData, 'hex')
@@ -39,6 +40,8 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
       return parseTemperatureEvent(buf)
     case TANK_LEVEL_SENSOR_TAG:
       return parseTankLevelEvent(buf)
+    case AUTOPILOT_REMOTE_TAG:
+      return parseAutopilotRemoteEvent(buf)
     default:
       console.error(`Unexpected sensor tag: ${sensorTag}`)
       return []
@@ -103,6 +106,19 @@ function parseTankLevelEvent(buf: Buffer): Array<SensorEvents.ITankLevel> {
   const instance = buf.toString('utf-8', 25, 29)
   const ts = new Date().toISOString()
   return [{ tag: 'w', instance, tankLevel, vcc, ts }]
+}
+
+function parseAutopilotRemoteEvent(buf: Buffer): Array<SensorEvents.IAutopilotCommand> {
+  assertLength(buf, 'Autopilot remote', 32)
+  assertCrc(buf)
+
+  const buttonId = buf.readUInt8(20)
+  const isLongPress = buf.readUInt8(21) > 0
+  const messageCounter = buf.readUInt16LE(22)
+  const vcc = buf.readUInt16LE(24)
+  const instance = buf.toString('utf-8', 28, 32)
+  const ts = new Date().toISOString()
+  return [{ tag: 'a', instance, buttonId, isLongPress, vcc, ts, messageCounter }]
 }
 
 function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
