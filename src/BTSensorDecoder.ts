@@ -10,6 +10,7 @@ const CURRENT_SENSOR_TAG = 'n'.charCodeAt(0)
 const TEMPERATURE_SENSOR_TAG = 't'.charCodeAt(0)
 const TANK_LEVEL_SENSOR_TAG = 'w'.charCodeAt(0)
 const AUTOPILOT_REMOTE_TAG = 'a'.charCodeAt(0)
+const VOLTAGE_SENSOR_TAG = 'v'.charCodeAt(0)
 
 export default function decodeBtSensorData(hexData: string): Array<ISensorEvent> {
   const data = Buffer.from(hexData, 'hex')
@@ -42,6 +43,8 @@ function decodeData(buf: Buffer): Array<ISensorEvent> {
       return parseTankLevelEvent(buf)
     case AUTOPILOT_REMOTE_TAG:
       return parseAutopilotRemoteEvent(buf)
+    case VOLTAGE_SENSOR_TAG:
+      return parseVoltageEvent(buf)
     default:
       console.error(`Unexpected sensor tag: ${sensorTag}`)
       return []
@@ -119,6 +122,16 @@ function parseAutopilotRemoteEvent(buf: Buffer): Array<SensorEvents.IAutopilotCo
   const instance = buf.toString('utf-8', 28, 32)
   const ts = new Date().toISOString()
   return [{ tag: 'a', instance, buttonId, isLongPress, vcc, ts, messageCounter }]
+}
+
+function parseVoltageEvent(buf: Buffer): Array<SensorEvents.IVoltageEvent> {
+  assertLength(buf, 'Voltage sensor', 28)
+  assertCrc(buf)
+
+  const vcc = buf.readUInt16LE(20)
+  const instance = buf.toString('utf-8', 24, 28)
+  const ts = new Date().toISOString()
+  return [{ tag: 'v', instance, vcc, ts }]
 }
 
 function assertLength(buf: Buffer, sensorType: string, expectedBytes: number) {
